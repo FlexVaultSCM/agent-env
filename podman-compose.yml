@@ -1,0 +1,31 @@
+version: '3.8'
+
+x-dev-environment-base: &dev-environment-base
+  build:
+    context: .
+    dockerfile: Dockerfile
+  stdin_open: true
+  tty: true
+  security_opt:
+    - no-new-privileges:true
+    - label=disable
+  cap_drop:
+    - ALL
+  cap_add:
+    - CHOWN
+    - DAC_OVERRIDE
+    - FOWNER
+    - SETGID
+    - SETUID
+    - CAP_PERFMON
+
+services:
+  dev-environment-alpha:
+    <<: *dev-environment-base
+    container_name: dev-container-alpha
+    volumes:
+      - ./storage/workspace-alpha:/home/devuser/workspace
+      - ./storage/shared-common:/home/devuser/shared-common
+
+
+

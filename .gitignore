@@ -1,0 +1,17 @@
+# Workspace directory (your projects go here)
+workspace/
+
+# Podman volumes and caches
+.docker/
+.podman/
+
+# Personal access tokens
+*.env
+*.pat
+
+# Storage mount directories - keep the directories, but ignore their contents
+storage/workspace-*/*
+storage/shared-common/*
+!storage/workspace-*/.gitkeep
+!storage/shared-common/.gitkeep
+
