@@ -8,7 +8,8 @@ x-dev-environment-base: &dev-environment-base
   tty: true
   security_opt:
     - no-new-privileges:true
-    - label=disable
+    - label:disable
+    - seccomp:./seccomp-perf.json
   cap_drop:
     - ALL
   cap_add:

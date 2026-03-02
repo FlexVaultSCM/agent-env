@@ -70,3 +70,11 @@ podman exec -it dev-container-alpha zsh
 
 ### Connect to a container in VSCode
 Ensure the _Dev Containers_ extension is installed, then open the command palette and select "Remote-Containers: Attach to Running Container..." and select the container you want to connect to. 
+
+## General notes
+
+### Enabling perf in WSL
+To enable perf in WSL, you need to do the following:
+1. Connect to the podman host: `podman machine ssh`
+2. Add this line to the end of the `/etc/sysctl.d/99-sysctl.conf` file: `kernel.perf_event_paranoid=1`
+3. Restart the podman machine: `podman machine stop && podman machine start`
