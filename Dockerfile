@@ -36,6 +36,8 @@ RUN apt-get install -y \
     python3 \
     python3-pip \
     zsh \
+    unzip \
+    rclone \
     && rm -rf /var/lib/apt/lists/*
 
 # Install copilot - doing as root for global installation to avoid annoyances
