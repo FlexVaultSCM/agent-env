@@ -38,6 +38,7 @@ RUN apt-get install -y \
     zsh \
     unzip \
     rclone \
+    xterm \
     && rm -rf /var/lib/apt/lists/*
 
 # Install copilot - doing as root for global installation to avoid annoyances

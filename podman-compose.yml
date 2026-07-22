@@ -24,9 +24,12 @@ services:
   dev-environment-alpha:
     <<: *dev-environment-base
     container_name: dev-container-alpha
+    environment:
+      - DISPLAY=:0
     volumes:
       - ./storage/workspace-alpha:/home/devuser/workspace
       - ./storage/shared-common:/home/devuser/shared-common
+      - /mnt/wslg/.X11-unix:/tmp/.X11-unix
 
 
 

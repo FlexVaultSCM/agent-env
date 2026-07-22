@@ -27,6 +27,7 @@ The dev environment will have two folders mounted from the host:
 To access GitHub and Copilot from within the container, you will need to create a GitHub Personal Access Token (PAT) with the appropriate scopes.  The login script `login.sh` runs as part of the `.zshrc` and looks for these files:
 - `~/shared-common/github_readonly.pat` - this should contain a GitHub PAT with read-only access to your repositories.
 - `~/shared-common/copilot.pat` - this should contain a GitHub PAT with access to Copilot.
+- `~/shared-common/claude.pat` - this should contain an OAT token with access to claude.
 
 To create these PATs, follow these steps:
 
@@ -42,6 +43,10 @@ To create a token with access to Copilot:
 1. Click on "Generate new token"
 2. Select the appropriate scopes for your use case.  For Copilot access, under Permissions select "Copilot Chat", "Copilot Editor Context" and "Copilot Requests".
 3. Generate the token and copy it to a secure location.  Then create the `copilot.pat` file in the `storage/shared-common` directory and paste the token there.
+
+And for Claude
+1. Run `claude setup-token` from cmdline
+2. Paste the token into `storage/shared-common/claude.pat`
 
 ## Building and Running the Dev Environment
 
