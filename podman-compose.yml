@@ -1,35 +1,41 @@
 version: '3.8'
 
+# Cross-platform base configuration (Windows/WSL, macOS, Linux).
+# On Windows with WSLg, layer podman-compose.wslg.yml on top (see wslg-compose.bat).
+
 x-dev-environment-base: &dev-environment-base
   build:
     context: .
     dockerfile: Dockerfile
+    target: base
   stdin_open: true
   tty: true
+  # Run a minimal init as PID 1 so the container stops promptly on SIGTERM
+  init: true
   security_opt:
     - no-new-privileges:true
     - label:disable
     - seccomp:./seccomp-perf.json
+  # Podman passes added capabilities on to the non-root user, so only add what devuser
+  # itself needs. Anything like SETUID/DAC_OVERRIDE would let it become root in the container.
   cap_drop:
     - ALL
   cap_add:
-    - CHOWN
-    - DAC_OVERRIDE
-    - FOWNER
-    - SETGID
-    - SETUID
     - CAP_PERFMON
+  # Size-capped tmpfs so scratch files can't silently grow the podman machine disk.
+  # Cleared on every container restart.
+  tmpfs:
+    - /tmp:rw,exec,size=8g,mode=1777
+  environment:
+    # Keep all Claude Code state (credentials, settings, .claude.json, history) in the workspace mount.
+    # (Claude's scratch files can't also go there: it requires its temp dir to be owned by the
+    # current user, and rootless podman shows the bind mount as owned by root.)
+    CLAUDE_CONFIG_DIR: /home/devuser/workspace/.claude
 
 services:
   dev-environment-alpha:
     <<: *dev-environment-base
     container_name: dev-container-alpha
-    environment:
-      - DISPLAY=:0
     volumes:
       - ./storage/workspace-alpha:/home/devuser/workspace
       - ./storage/shared-common:/home/devuser/shared-common
-      - /mnt/wslg/.X11-unix:/tmp/.X11-unix
-
-
-

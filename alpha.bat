@@ -1,3 +1,3 @@
 @echo off
-podman-compose up -d
+call "%~dp0wslg-compose.bat" up -d
 podman exec -it dev-container-alpha zsh

@@ -1,0 +1,29 @@
+# WSLg overlay: builds the desktop image and connects the container to the WSLg X11 server.
+# Use together with podman-compose.yml, e.g. via wslg-compose.bat:
+#   podman-compose -f podman-compose.yml -f podman-compose.wslg.yml <command>
+#
+# Each service in podman-compose.yml that should get GUI access needs an entry here.
+
+services:
+  dev-environment-alpha:
+    build:
+      target: desktop
+    # Chromium/Electron apps pass rendered frames and network data through /dev/shm, and podman's
+    # default of 64MB runs out (e.g. Claude Desktop's first launch: renderer crash plus
+    # net::ERR_INSUFFICIENT_RESOURCES, shown as "Can't reach Claude").
+    shm_size: 1g
+    environment:
+      DISPLAY: ":0"
+    volumes:
+      - wslg-x11:/tmp/.X11-unix
+
+volumes:
+  # A named volume bound to the podman machine's /mnt/wslg/.X11-unix. A plain bind mount
+  # doesn't work here: on Windows, podman-compose resolves bind sources against the C: drive
+  # (giving C:\mnt\wslg\.X11-unix), whereas driver_opts are passed to the machine untouched.
+  wslg-x11:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /mnt/wslg/.X11-unix
