@@ -78,7 +78,11 @@ Run `claude` in the container and log in with `/login`.  All Claude Code state (
 podman-compose build
 ```
 
-Layer caching means changes to the Dockerfile only rebuild from the changed step onwards, so `--no-cache` is not needed after editing the Dockerfile.  Only use it when you want to pull newer versions of the installed tools (Rust nightly, Claude Code, etc.):
+Layer caching means changes to the Dockerfile only rebuild from the changed step onwards, so `--no-cache` is not needed after editing the Dockerfile.
+
+A normal build also picks up new Claude Desktop releases (desktop image): the build downloads the apt repository's package index, and the install step re-runs whenever that changes.  Claude Desktop can't be updated with `apt` from inside the container, as there's no root access there.
+
+To pull newer versions of everything else (Rust nightly, Claude Code, Debian packages, etc.), use `--no-cache`:
 
 ```bash
 podman-compose build --no-cache

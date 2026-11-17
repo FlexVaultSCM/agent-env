@@ -127,7 +127,14 @@ RUN apt-get update && apt-get install -y \
 # fingerprint. Recommended packages (QEMU/OVMF for Cowork) are skipped as there's no KVM in the
 # container; gnome-keyring + dbus-x11 are added so the sign-in can be saved.
 # See https://code.claude.com/docs/en/desktop-linux
-RUN curl -fsSLo /usr/share/keyrings/claude-desktop-archive-keyring.asc https://downloads.claude.ai/claude-desktop/key.asc \
+#
+# The repository's package index is downloaded first so that a new Claude Desktop release changes
+# this step's input and the install below re-runs, while it stays cached otherwise. So a normal
+# build picks up new releases.
+ARG TARGETARCH
+ADD https://downloads.claude.ai/claude-desktop/apt/stable/dists/stable/main/binary-${TARGETARCH}/Packages /tmp/claude-desktop-Packages
+RUN rm /tmp/claude-desktop-Packages \
+    && curl -fsSLo /usr/share/keyrings/claude-desktop-archive-keyring.asc https://downloads.claude.ai/claude-desktop/key.asc \
     && gpg --show-keys --with-colons /usr/share/keyrings/claude-desktop-archive-keyring.asc | grep -q '^fpr:*31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE:' \
     && echo "deb [arch=amd64,arm64 signed-by=/usr/share/keyrings/claude-desktop-archive-keyring.asc] https://downloads.claude.ai/claude-desktop/apt/stable stable main" > /etc/apt/sources.list.d/claude-desktop.list \
     && apt-get update \
