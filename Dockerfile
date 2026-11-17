@@ -143,7 +143,9 @@ RUN rm /tmp/claude-desktop-Packages \
 
 # Launcher that adds the flags Claude Desktop needs in the container (shadows /usr/bin/claude-desktop)
 COPY scripts/claude-desktop.sh /usr/local/bin/claude-desktop
-RUN chmod 755 /usr/local/bin/claude-desktop
+# Run by container-init: keeps Claude Desktop's state (~/.config/Claude) in the workspace mount
+COPY scripts/claude-desktop-persist.sh /usr/local/bin/claude-desktop-persist
+RUN chmod 755 /usr/local/bin/claude-desktop /usr/local/bin/claude-desktop-persist
 
 # Shared D-Bus session bus, started by container-init at the standard per-user location
 ENV DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/runtime-devuser/bus

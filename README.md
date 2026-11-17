@@ -46,6 +46,8 @@ Claude Desktop is installed in the desktop image; run `claude-desktop` to start 
 
 The desktop image starts a D-Bus session bus and an unlocked gnome-keyring when the container starts (`scripts/container-init.sh`), shared by everything in the container, so apps that store secrets (Claude Desktop, gh) can do so without prompting.  The keyring lives in the container, so the Claude Desktop sign-in lasts across container restarts, but not when the container is recreated.
 
+Claude Desktop's own state (the Code tab's session list, Cowork sessions, scheduled tasks, MCP servers, preferences, and the files of "No folder" sessions) is kept in `~/workspace/.claude-desktop`: at container start, `scripts/claude-desktop-persist.sh` makes `~/.config/Claude` a symlink to it.  So after recreating the container you only need to sign in again; your sessions are still there.  The session transcripts themselves are in `~/workspace/.claude` (see [Claude](#claude)).
+
 Other Electron apps will usually need to be started with `--no-sandbox` too, as Chromium's sandbox can't set itself up under `no-new-privileges` and the seccomp profile.  The container itself is the sandbox.
 
 ## Access Tokens

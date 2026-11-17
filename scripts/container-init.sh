@@ -14,4 +14,9 @@ if [ -n "$DBUS_SESSION_BUS_ADDRESS" ] && command -v dbus-daemon >/dev/null && co
     printf "devuser" | gnome-keyring-daemon --unlock --components=secrets >/dev/null
 fi
 
+# Desktop image: keep Claude Desktop's state in the workspace mount (see claude-desktop-persist.sh)
+if command -v claude-desktop-persist >/dev/null; then
+    claude-desktop-persist
+fi
+
 exec sleep infinity
