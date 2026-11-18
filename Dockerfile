@@ -42,6 +42,7 @@ RUN apt-get install -y \
     unzip \
     rclone \
     ripgrep \
+    jq \
     && rm -rf /var/lib/apt/lists/*
 
 # Install copilot - doing as root for global installation to avoid annoyances
@@ -85,6 +86,11 @@ WORKDIR /home/devuser
 COPY --chown=devuser:devuser scripts/login.sh /home/devuser/login.sh
 
 RUN chmod +x /home/devuser/login.sh && echo "source /home/devuser/login.sh" >> /home/devuser/.zshrc
+
+# cargo wrapper that builds projects under ~/workspace outside the mount (see the script). It is
+# on PATH ahead of ~/.cargo/bin, so shells, agents and editors all use it.
+COPY --chown=devuser:devuser scripts/cargo-target-dir.sh /home/devuser/.local/bin/cargo
+RUN chmod +x /home/devuser/.local/bin/cargo
 
 # Start-up script: creates the runtime dir (plus D-Bus/keyring in the desktop image), then keeps
 # the container running

@@ -24,6 +24,7 @@ The dev environment has installed the following main tools:
 - Rust toolchain (rustup, cargo, rustc)
 - Python3, uv
 - Node
+- jq
 - Cargo flamegraph, cargo-samply, samply, ripgrep
 - GitHub CLI, Copilot CLI, Claude Code
 
@@ -117,6 +118,11 @@ Anything written inside the container outside of the mounted folders lives in th
 - Put large data sets (symbols, downloads, build outputs) under `~/workspace`, not elsewhere in the home directory.
 
 To see what's using space: `podman system df` and `podman ps -a --size`.
+
+### Rust build directories
+`~/workspace` refuses `chmod`, so a Rust project can't build in its own `target/` there: build scripts such as `zstd-sys` and `aws-lc-sys` fail with "Operation not permitted". The image installs a `cargo` wrapper (`scripts/cargo-target-dir.sh`, as `~/.local/bin/cargo`) that builds each project under `~/workspace` in `~/.cache/cargo-target/<its path under ~/workspace>` instead, one directory per checkout. A `CARGO_TARGET_DIR` that is already set is used as it is.
+
+These directories are in the container's writable layer, so they are lost when the container is recreated, and a debug build of a large workspace can take 10GB or more. Run `cargo clean` in a project when you are done with it.
 
 ## General notes
 
