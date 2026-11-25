@@ -149,7 +149,7 @@ RUN rm /tmp/claude-desktop-Packages \
 
 # Launcher that adds the flags Claude Desktop needs in the container (shadows /usr/bin/claude-desktop)
 COPY scripts/claude-desktop.sh /usr/local/bin/claude-desktop
-# Run by container-init: keeps Claude Desktop's state (~/.config/Claude) in the workspace mount
+# Run by container-init: prepares the volume that holds Claude Desktop's state (~/.config/Claude)
 COPY scripts/claude-desktop-persist.sh /usr/local/bin/claude-desktop-persist
 RUN chmod 755 /usr/local/bin/claude-desktop /usr/local/bin/claude-desktop-persist
 
@@ -157,3 +157,8 @@ RUN chmod 755 /usr/local/bin/claude-desktop /usr/local/bin/claude-desktop-persis
 ENV DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/runtime-devuser/bus
 
 USER devuser
+
+# Mount point of the volume that holds Claude Desktop's state. It has to exist in the image, owned
+# by devuser: podman gives a new volume the owner and mode of the directory it is mounted on, and
+# would create a missing one (and ~/.config) owned by root.
+RUN mkdir -p /home/devuser/.config && mkdir -m 700 /home/devuser/.config/Claude

@@ -16,8 +16,15 @@ services:
       DISPLAY: ":0"
     volumes:
       - wslg-x11:/tmp/.X11-unix
+      - claude-desktop-alpha:/home/devuser/.config/Claude
 
 volumes:
+  # Claude Desktop's state, for the alpha container (each container needs a volume of its own). A
+  # named volume is on the podman machine's disk, where chmod works; the app can't save its sessions
+  # in the workspace mount, which refuses it.
+  claude-desktop-alpha:
+    driver: local
+
   # A named volume bound to the podman machine's /mnt/wslg/.X11-unix. A plain bind mount
   # doesn't work here: on Windows, podman-compose resolves bind sources against the C: drive
   # (giving C:\mnt\wslg\.X11-unix), whereas driver_opts are passed to the machine untouched.

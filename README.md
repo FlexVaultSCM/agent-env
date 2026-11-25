@@ -15,7 +15,7 @@ Make sure podman is installed and running and podman-compose is installed and in
 
 Allows you to create a set of dev environments using Podman compose.  Each container is described in `podman-compose.yml`, adding new ones is as simple as adding a new service to the file.
 
-Currently only `dev-container-alpha` is defined, but you can add more by following the same pattern.  If a new container should have GUI access on Windows, also add an entry for it to `podman-compose.wslg.yml`.
+Currently only `dev-container-alpha` is defined, but you can add more by following the same pattern.  If a new container should have GUI access on Windows, also add an entry for it to `podman-compose.wslg.yml`, with a Claude Desktop volume of its own.
 
 The containers are deliberately locked down so agents can run largely unfettered without being able to change global/admin state: there is no `sudo`, all capabilities are dropped except a minimal set, `no-new-privileges` is set, and a seccomp profile is applied.
 
@@ -47,7 +47,11 @@ Claude Desktop is installed in the desktop image; run `claude-desktop` to start 
 
 The desktop image starts a D-Bus session bus and an unlocked gnome-keyring when the container starts (`scripts/container-init.sh`), shared by everything in the container, so apps that store secrets (Claude Desktop, gh) can do so without prompting.  The keyring lives in the container, so the Claude Desktop sign-in lasts across container restarts, but not when the container is recreated.
 
-Claude Desktop's own state (the Code tab's session list, Cowork sessions, scheduled tasks, MCP servers, preferences, and the files of "No folder" sessions) is kept in `~/workspace/.claude-desktop`: at container start, `scripts/claude-desktop-persist.sh` makes `~/.config/Claude` a symlink to it.  So after recreating the container you only need to sign in again; your sessions are still there.  The session transcripts themselves are in `~/workspace/.claude` (see [Claude](#claude)).
+Claude Desktop's own state (the Code tab's session list, Cowork sessions, scheduled tasks, MCP servers, preferences, and the files of "No folder" sessions) is in `~/.config/Claude`, which is a named volume (`claude-desktop-alpha`, defined in `podman-compose.wslg.yml`).  So after recreating the container you only need to sign in again; your sessions are still there.  The session transcripts themselves are in `~/workspace/.claude` (see [Claude](#claude)).
+
+The volume is on the podman machine's disk, so it is lost if the podman machine is recreated, or if the volume is deleted (`podman-compose down -v`, `podman volume rm`, `podman volume prune`).  The transcripts are not affected: to put a session back in the app, run `claude --desktop --resume <session ID>` in the session's folder, where the session ID is the name of its transcript file in `~/workspace/.claude/projects`.
+
+It can't be kept in `~/workspace`, which refuses `chmod`: the app sets permissions on its directories before each save, so every save fails, and the session list is lost when the app closes.  The app reports this only in its log (`~/.config/Claude/logs/main.log`, "Failed to save session"), so the launcher checks for it and prints a warning.  Earlier versions did keep it there, in `~/workspace/.claude-desktop`; `scripts/claude-desktop-persist.sh` copies that into the volume the first time the container starts with an empty volume, after which you can delete it.
 
 Other Electron apps will usually need to be started with `--no-sandbox` too, as Chromium's sandbox can't set itself up under `no-new-privileges` and the seccomp profile.  The container itself is the sandbox.
 
@@ -91,7 +95,7 @@ To pull newer versions of everything else (Rust nightly, Claude Code, Debian pac
 podman-compose build --no-cache
 ```
 
-A rebuilt image is only picked up when the container is recreated; `up -d` (and so `alpha.bat`) keeps an existing container.  Recreating discards anything in the container outside the mounted folders:
+A rebuilt image is only picked up when the container is recreated; `up -d` (and so `alpha.bat`) keeps an existing container.  Recreating discards anything in the container outside the mounted folders and volumes:
 
 ```bash
 podman-compose up -d --force-recreate

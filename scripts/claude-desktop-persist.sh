@@ -1,33 +1,50 @@
 #!/bin/sh
-# Keeps Claude Desktop's own state in the workspace mount, so it survives recreating the container.
-# Run by container-init.sh at container start, before Claude Desktop can be launched. Installed as
+# Prepares ~/.config/Claude, where Claude Desktop keeps its own state, before the app can be
+# launched. Run by container-init.sh at container start. Installed as
 # /usr/local/bin/claude-desktop-persist in the desktop image.
 #
-# Claude Desktop keeps its data in ~/.config/Claude, separately from Claude Code's CLAUDE_CONFIG_DIR.
-# This covers the Code tab's session list (titles, folders, links to the transcripts kept in
-# ~/workspace/.claude), Cowork sessions, scheduled tasks, MCP servers and preferences, and the files
-# of "No folder" sessions. ~/.config/Claude is made a symlink into the workspace, the same way as
-# ~/.copilot. A bind mount isn't used because podman would create a missing ~/.config owned by root.
+# ~/.config/Claude is a named volume (see podman-compose.wslg.yml), so it survives recreating the
+# container. It can't be kept in ~/workspace: the app sets permissions on its directories before
+# each save, and ~/workspace refuses chmod, so every save fails and the session list is lost when
+# the app closes.
 #
-# The sign-in is not kept: Chromium encrypts it with a key held in the container's gnome-keyring,
-# which is recreated with the container, so the app asks you to sign in again.
-#
-# Only run it while Claude Desktop is not running. To move an existing container's data over by
-# hand, quit Claude Desktop first, then run: sh ~/workspace/agent-env/scripts/claude-desktop-persist.sh
+# Earlier versions kept it in ~/workspace/.claude-desktop. That is copied into the volume once, when
+# the volume is empty, and is then left alone.
 live="$HOME/.config/Claude"
-kept="$HOME/workspace/.claude-desktop"
+old="$HOME/workspace/.claude-desktop"
+copying="$live/.migrating"    # copy in progress: discarded and started again if interrupted
+copied="$live/.migrated"      # copy complete, waiting to be moved into place
 
-mkdir -p "$kept" "$HOME/.config"
+migrate() {
+    rm -rf "$copying"
+    mkdir "$copying" || return 1
+    for entry in "$old"/* "$old"/.[!.]*; do
+        [ -e "$entry" ] || [ -L "$entry" ] || continue
+        case "${entry##*/}" in
+            # Caches, the bundled Claude Code, and locks: the app creates these again
+            Cache | "Code Cache" | GPUCache | GPUPersistentCache | DawnGraphiteCache | DawnWebGPUCache) continue ;;
+            claude-code | claude-code-spare | git-shadow | Singleton*) continue ;;
+        esac
+        cp -R "$entry" "$copying/" || return 1
+    done
+    # Everything in ~/workspace has mode 777
+    chmod -R go= "$copying" && mv "$copying" "$copied"
+}
 
-# Data from before this script existed is in the container itself: move it into the workspace.
-# If the copy fails, the directory is left alone and the app keeps working, just without persisting.
 if [ -d "$live" ] && [ ! -L "$live" ]; then
-    cp -R "$live/." "$kept/" && rm -rf "$live"
-fi
-if [ ! -e "$live" ] && [ ! -L "$live" ]; then
-    ln -s "$kept" "$live"
+    if [ -d "$old" ] && [ -z "$(ls -A "$live" | grep -vx '\.migrating')" ]; then
+        migrate || echo "claude-desktop-persist: could not copy $old into $live" >&2
+    fi
+    if [ -d "$copied" ]; then
+        find "$copied" -mindepth 1 -maxdepth 1 -exec mv -n -t "$live" {} + && rmdir "$copied"
+    fi
+
+    # Chromium's single-instance lock records the hostname, which is the container ID. A lock left
+    # by an old container looks like the profile is in use on another machine, and the app won't
+    # start.
+    rm -f "$live/SingletonLock" "$live/SingletonSocket" "$live/SingletonCookie"
 fi
 
-# Chromium's single-instance lock records the hostname, which is the container ID. A lock left by
-# an old container looks like the profile is in use on another machine, and the app won't start.
-rm -f "$kept/SingletonLock" "$kept/SingletonSocket" "$kept/SingletonCookie"
+# The launcher (claude-desktop.sh) waits for this, so the app never starts partway through a copy.
+# It is on the /tmp tmpfs, so it is cleared on every container restart.
+touch "$XDG_RUNTIME_DIR/claude-desktop-ready"
